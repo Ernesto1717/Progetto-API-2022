@@ -11,8 +11,13 @@ typedef struct minmax{
 }MinMax;
 
 
-bool FINE=false;
-
+// VINCOLO is the structure that contains the constraints
+// certe is the word that is the constraint
+// nothere is an array of boolean values that indicates if a letter is not allowed in a certain position
+// numcar is an array of MinMax values that indicates a number, that can be the minimum or the maximum, of occurrences a certain letter in the word.
+// visto is an array of boolean values that indicates if a letter has already checked during the game
+// arrivisti is an array of integer values that indicates the number of occurrences of a certain letter in the word
+// index_visti is the index of the last element of the array arrivisti
 typedef struct v{
     char *certe;
     bool *nothere[64];
@@ -32,6 +37,9 @@ typedef struct EL{
     char *parola;
     struct EL* next;
 }lista;
+
+
+bool FINE=false
 
 int iniziali(rbtree **ptree);
 void insertRB(rbtree **ptree,char *temp);
@@ -93,6 +101,12 @@ int main() {
     return 0;
 }
 
+/**
+ * This function is called when the test starts.
+ * Its purpose is to create the first vocabulary three.
+ * It creates a new game and it calls the function that creates the list of words that are compatible with the constraints.
+ * @param ptree pointer to the vocabulary tree
+ */
 int iniziali(rbtree **ptree){
     char temp[20];
     while(scanf("%s",temp)==true&&temp[0]!='+'){
@@ -102,6 +116,11 @@ int iniziali(rbtree **ptree){
     else return 0;
 }
 
+/**
+ *
+ * @param ptree pointer to the vocabulary tree
+ * @param temp word to be inserted
+ */
 void insertRB(rbtree **ptree,char *temp){
     rbtree* pre=NULL,
             *z=malloc(sizeof(rbtree)),
@@ -122,7 +141,14 @@ void insertRB(rbtree **ptree,char *temp){
     else if(strcmp(z->parola,pre->parola)<0)pre->left=z;
     else pre->right=z;
 }
-
+/**
+ * This function is called just when the inserisci_inizio command is called
+ * during a game and the word that is inserted is still compatible with the
+ * momentary constraints.
+ * @param ptree pointer to the vocabulary tree
+ * @param temp word to be inserted
+ * @return pointer to the inserted node
+ */
 rbtree* insertRBpartita(rbtree **ptree,char *temp){
     rbtree* pre=NULL,
             *z=malloc(sizeof(rbtree)),
@@ -146,8 +172,10 @@ rbtree* insertRBpartita(rbtree **ptree,char *temp){
 }
 
 /**
- *
- * @param ptree
+ * This is the game function. It is called when the command nuova_partita is
+ * achieved. It initializes the constraints and the list of the words that
+ * are compatible with the constraints.
+ * @param ptree is the vocabulary tree
  */
 void nuovapartita(rbtree **ptree){
     rbtree *new;
@@ -180,9 +208,10 @@ void nuovapartita(rbtree **ptree){
 
     if(scanf("%s",rife)!=true){FINE=true;return;}
 
-    if(scanf("%d",&n)!=true){FINE=true;return;}
+    if(scanf("%d",&n)!=true){FINE=true;return;} //n is the maximum number of tries that the player can do to guess the word
     for(int i=0;i<64;i++){alfabeto[0][i]=0;}
     for(int i=0;i<K;i++){alfabeto[0][hash[(int)rife[i]]]+=1;}
+
     while(n>0){
         if(scanf("%s",temp)!=true){FINE=true;return;}
         if(temp[0]=='+') {
@@ -234,6 +263,8 @@ void nuovapartita(rbtree **ptree){
             return;
         }
         else if(parolaexists(*ptree,temp)==0) printf("not_exists\n");  //se non esiste non decremento n
+
+        // Start of checking how similar is the word to the reference word and updating the constraints.
         else{
             n--;
             for(int i=0;i<64;i++){alfabeto[1][i]=0;}    //            inizializzo alfabeto
@@ -257,7 +288,8 @@ void nuovapartita(rbtree **ptree){
                 }
             }
 
-            for(int i=0;i<K;i++){  //controllo delle lettere in posizione scorretta
+            //check third constraint
+            for(int i=0;i<K;i++){
                 if(res[i]=='|'){
                     num=0;
                     for(int j=0;j<i;j++){
@@ -316,6 +348,11 @@ void nuovapartita(rbtree **ptree){
     }
 }
 
+/**
+ * @param ptree the vocabulary tree
+ * @param word the word to check
+ * @return 1 if the word exists, 0 otherwise
+ */
 int parolaexists(rbtree *ptree,char *word){
     while(ptree!=NULL){
         if(strcmp(word,ptree->parola)<0){
@@ -327,6 +364,13 @@ int parolaexists(rbtree *ptree,char *word){
     return 0;
 }
 
+/**
+ * this function checks if a word is admissible according to the constraints
+ * inferred from the previous guesses.
+ * @param parola is the word to check
+ * @param vincolo is the constraint structure
+ * @return 1 if the word is admissible, 0 otherwise
+ */
 int parolaammissibile(char *parola,VINCOLO *vincolo){
     int i;
     for(i=0;i<K;i++){
@@ -360,6 +404,11 @@ void dealloc (rbtree *rbarr){
     free(rbarr);
 }
 
+/**
+ * this function is called when the command stampafiltrate is given in input
+ * during a game before the first guess. It prints all the words in the vocabulary.
+ * @param tree is the pointer to the tree
+ */
 void stampafiltrate(rbtree *tree){
     if(tree==NULL)return;
     if(tree->left!=NULL)stampafiltrate(tree->left);
@@ -367,7 +416,11 @@ void stampafiltrate(rbtree *tree){
     if(tree->right!=NULL)stampafiltrate(tree->right);
 }
 
-
+/**
+ * this function is called when the command stampafiltratelista is given in input
+ * during a game after the first guess. It prints all the words in the vocabulary.
+ * @param Tammessi is the pointer to the list where the admissible words are stored
+ */
 void stampafiltratelista(lista *Tammessi){
     while(Tammessi!=NULL){
         printf("%s\n",Tammessi->parola);
@@ -435,6 +488,13 @@ void insertlista(rbtree *new,lista **linizio){
     }
 }
 
+/**
+ * This function has the purpose of merging the two lists of words that are still admissible.
+ * The first list is the one that contains all the words in the vocabulary, the second one is the one
+ * that contains tha words that hasve just been inserted in the tree.
+ * @param Tammessi
+ * @param linizio
+ */
 void mischialista(lista **Tammessi,lista **linizio){
     lista *puntl=*linizio,*puntt=*Tammessi,*prec=NULL;
     while(puntl!=NULL&&puntt!=NULL){
